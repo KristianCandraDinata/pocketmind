@@ -9,12 +9,12 @@ app = FastAPI()
 
 stt = WhisperModel("small", device="cpu", compute_type="int8")
 ai = genai.Client(http_options=types.HttpOptions(timeout=20000))  # 20 detik; key dari GEMINI_API_KEY
-PIPER_MODEL = "id_ID-news_tts-medium.onnx"
+PIPER_MODEL = "models/id_ID-news_tts-medium.onnx"
 
 # Model dicoba berurutan. Sesuaikan dengan hasil tes_gemini.py dan halaman rate-limit.
 GEMINI_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"]
 
-with open("pengetahuan_konsul.txt", encoding="utf-8") as f:
+with open("backend/knowledge/student_support.txt", encoding="utf-8") as f:
     PENGETAHUAN = f.read()
 
 # Jadwal makan anak. Samakan dengan REMINDER_HOURS di firmware ESP.
