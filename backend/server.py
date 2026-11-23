@@ -4,6 +4,7 @@ from fastapi import FastAPI, WebSocket
 from faster_whisper import WhisperModel
 from google import genai
 from google.genai import types
+from backend.domain import ACTIVE_DOMAIN
 
 app = FastAPI()
 
@@ -14,40 +15,18 @@ PIPER_MODEL = "models/id_ID-news_tts-medium.onnx"
 # Model dicoba berurutan. Sesuaikan dengan hasil tes_gemini.py dan halaman rate-limit.
 GEMINI_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"]
 
-with open("backend/knowledge/student_support.txt", encoding="utf-8") as f:
+with open(ACTIVE_DOMAIN["knowledge_file"], encoding="utf-8") as f:
     PENGETAHUAN = f.read()
 
-# Jadwal makan anak. Samakan dengan REMINDER_HOURS di firmware ESP.
-JADWAL = "07.00 makan pagi; 12.00 makan siang; 17.00 makan sore"
+SYSTEM_PROMPT = f"""
+{ACTIVE_DOMAIN["system_prompt"]}
 
+ATURAN TAMBAHAN:
+1. Gunakan PENGETAHUAN berikut sebagai sumber informasi utama:
+{PENGETAHUAN}
 
-SYSTEM_PROMPT = f"""Kamu adalah PocketMind, asisten suara pintar untuk membantu
-pelajar dan mahasiswa di Indonesia dalam menghadapi permasalahan
-kehidupan sekolah, perkuliahan, dan lingkungan sosial.
-
-ATURAN:
-1. Jawab menggunakan bahasa Indonesia yang sederhana, ramah,
-   empatik, dan mudah dipahami pelajar.
-2. Dasarkan jawaban pada PENGETAHUAN yang tersedia di bawah.
-3. Kamu boleh membantu membahas permasalahan seperti bullying,
-   pertemanan, tekanan akademik, motivasi belajar, stres sekolah,
-   konflik sosial, dan permasalahan pelajar lainnya.
-4. Jika pengguna mengalami bullying, berikan respons yang empatik,
-   jangan menyalahkan korban, dan sarankan mencari bantuan dari
-   guru BK, orang tua, wali kelas, atau pihak tepercaya.
-5. Jika terdapat ancaman keselamatan, kekerasan, atau kondisi
-   darurat, sarankan segera mencari bantuan orang dewasa tepercaya
-   atau pihak berwenang.
-6. Jangan mengarang informasi yang tidak terdapat dalam PENGETAHUAN.
-   Jika informasi tidak tersedia, sampaikan bahwa kamu belum memiliki
-   informasi yang cukup.
-7. Jika pertanyaan berkaitan dengan MPASI, makanan bayi, atau
-   pemberian nutrisi anak, tolak dengan sopan karena saat ini kamu
-   sedang berada dalam mode Konsultasi Pelajar.
-8. Jika pertanyaan tidak berkaitan dengan konsultasi pelajar,
-   tolak dengan sopan.
-9. Jika ucapan tidak jelas atau salah dikenali, minta pengguna
-   mengulangi pertanyaannya.
+2. Jika informasi tidak tersedia, sampaikan dengan jujur.
+3. Jangan mengarang informasi di luar knowledge base.
 
 FORMAT:
 Balas HANYA dengan satu objek JSON, tanpa teks lain dan tanpa markdown:
@@ -57,9 +36,6 @@ Balas HANYA dengan satu objek JSON, tanpa teks lain dan tanpa markdown:
   tanpa emoji dan tanpa tanda baca aneh.
 - "layar": ringkasan maksimal 60 karakter, boleh menggunakan angka,
   tanpa emoji dan tanpa baris baru.
-
-PENGETAHUAN:
-{PENGETAHUAN}
 """
 
 
@@ -105,7 +81,8 @@ def transcribe(pcm: np.ndarray) -> str:
     audio = pcm.astype(np.float32) / 32768.0
     segs, _ = stt.transcribe(
         audio, language="id", beam_size=5, vad_filter=True,
-        initial_prompt="Jadwal makan MPASI bayi usia 6 bulan, 9 bulan, 12 bulan.")
+        initial_prompt=ACTIVE_DOMAIN["system_prompt"][:200],
+    )
     return " ".join(s.text for s in segs).strip()
 
 
